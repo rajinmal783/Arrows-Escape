@@ -111,6 +111,16 @@ class LocalStorageService {
     );
   }
 
+  bool hasUserSetCustomName(String userId) {
+    if (userId.isEmpty || userId == 'guest' || userId == 'guest_user') return false;
+    return _prefs.getBool('custom_name_set_$userId') ?? false;
+  }
+
+  Future<void> setUserSetCustomName(String userId, bool val) async {
+    if (userId.isEmpty || userId == 'guest' || userId == 'guest_user') return;
+    await _prefs.setBool('custom_name_set_$userId', val);
+  }
+
   // --- Settings ---
   UserSettings loadSettings() {
     final raw = _prefs.getString(AppConstants.keyUserSettings);

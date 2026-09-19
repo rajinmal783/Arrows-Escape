@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/level_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/storage_provider.dart';
+import '../../widgets/edit_profile_sheet.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +17,25 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkFirstTimeNameSetup();
+    });
+  }
+
+  void _checkFirstTimeNameSetup() {
+    final authState = ref.read(authProvider);
+    if (authState.user != null) {
+      final storage = ref.read(localStorageProvider);
+      final hasSet = storage.hasUserSetCustomName(authState.user!.id);
+      if (!hasSet && mounted) {
+        EditProfileSheet.show(context, isFirstTime: true);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,22 +58,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 22,
-                        backgroundColor: AppColors.primaryBlue.withAlpha(38),
-                        backgroundImage: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
-                            ? NetworkImage(profile.avatarUrl!)
-                            : null,
-                        child: (profile.avatarUrl == null || profile.avatarUrl!.isEmpty)
-                            ? Text(
-                                profile.username.isNotEmpty ? profile.username[0].toUpperCase() : 'P',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryBlue,
-                                ),
-                              )
-                            : null,
+                      GestureDetector(
+                        onTap: () => context.push('/profile'),
+                        child: CircleAvatar(
+                          radius: 22,
+                          backgroundColor: AppColors.primaryBlue.withAlpha(38),
+                          backgroundImage: (profile.avatarUrl != null && profile.avatarUrl!.startsWith('http'))
+                              ? NetworkImage(profile.avatarUrl!)
+                              : null,
+                          child: (profile.avatarUrl == null || !profile.avatarUrl!.startsWith('http'))
+                              ? Text(
+                                  (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
+                                      ? profile.avatarUrl!
+                                      : (profile.username.isNotEmpty ? profile.username[0].toUpperCase() : 'P'),
+                                  style: TextStyle(
+                                    fontSize: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty && !profile.avatarUrl!.startsWith('http')) ? 20 : 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryBlue,
+                                  ),
+                                )
+                              : null,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Column(

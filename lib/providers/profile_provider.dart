@@ -105,7 +105,24 @@ class ProfileNotifier extends StateNotifier<UserProfile> {
   }
 
   Future<void> updateUsername(String newName) async {
-    state = state.copyWith(username: newName);
+    state = state.copyWith(username: newName, fullName: newName);
+    final auth = _ref.read(authProvider);
+    if (auth.user != null) {
+      await _ref.read(localStorageProvider).setUserSetCustomName(auth.user!.id, true);
+    }
+    await _save();
+  }
+
+  Future<void> updateProfileDetails({required String username, String? avatarUrl}) async {
+    state = state.copyWith(
+      username: username,
+      fullName: username,
+      avatarUrl: avatarUrl ?? state.avatarUrl,
+    );
+    final auth = _ref.read(authProvider);
+    if (auth.user != null) {
+      await _ref.read(localStorageProvider).setUserSetCustomName(auth.user!.id, true);
+    }
     await _save();
   }
 
