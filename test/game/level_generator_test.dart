@@ -70,6 +70,19 @@ void main() {
       expect(solverResult.isSolvable, isTrue);
     });
 
+    test('Generates 100% solvable Daily Challenge puzzle (e.g. level 999719)', () {
+      final level = LevelGenerator.generateLevel(999719);
+      expect(level.difficulty, equals('Hard'));
+      expect(level.arrows.length, inInclusiveRange(20, 24));
+      final solverResult = PuzzleSolver.solve(
+        arrows: level.arrows,
+        rows: level.rows,
+        cols: level.columns,
+      );
+      expect(solverResult.isSolvable, isTrue);
+      expect(solverResult.solutionOrder.length, equals(level.arrows.length));
+    });
+
     test('Deterministic generation produces identical arrows for identical level IDs', () {
       final levelA = LevelGenerator.generateLevel(42);
       final levelB = LevelGenerator.generateLevel(42);

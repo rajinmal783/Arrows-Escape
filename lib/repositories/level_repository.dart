@@ -23,7 +23,13 @@ class LevelRepository {
     final seed = int.parse(dateKey);
     final dailyLevelId = 999000 + (seed % 1000);
 
-    return LevelGenerator.generateLevel(dailyLevelId);
+    if (_levelCache.containsKey(dailyLevelId)) {
+      return _levelCache[dailyLevelId]!;
+    }
+
+    final level = LevelGenerator.generateLevel(dailyLevelId);
+    _levelCache[dailyLevelId] = level;
+    return level;
   }
 
   int get totalLevelsCount => AppConstants.totalLevels;

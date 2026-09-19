@@ -54,6 +54,18 @@ class LevelGenerator {
   }
 
   static _LevelConfig _getLevelConfig(int levelId) {
+    if (levelId >= 999000) {
+      // Daily Challenge: Curated 10x10 layout with dynamic shape (20-24 arrows)
+      final daySeed = levelId - 999000;
+      return _LevelConfig(
+        difficulty: 'Hard',
+        rows: 10,
+        cols: 10,
+        arrowCount: 20 + (daySeed % 5),
+        shape: shapes[daySeed % shapes.length],
+      );
+    }
+
     if (levelId <= 100) {
       // Beginner
       final rows = 6 + (levelId > 50 ? 1 : 0);
@@ -62,55 +74,55 @@ class LevelGenerator {
         difficulty: 'Beginner',
         rows: rows,
         cols: rows,
-        arrowCount: count,
+        arrowCount: count.clamp(6, 12),
         shape: shapes[levelId % 3],
       );
     } else if (levelId <= 200) {
       // Normal
-      final progress = (levelId - 100) / 100.0;
+      final progress = ((levelId - 100) / 100.0).clamp(0.0, 1.0);
       final rows = 8 + (progress > 0.5 ? 1 : 0);
       final count = 14 + (progress * 8).round();
       return _LevelConfig(
         difficulty: 'Normal',
         rows: rows,
         cols: rows,
-        arrowCount: count,
+        arrowCount: count.clamp(14, 22),
         shape: shapes[(levelId % 5)],
       );
     } else if (levelId <= 300) {
       // Hard
-      final progress = (levelId - 200) / 100.0;
+      final progress = ((levelId - 200) / 100.0).clamp(0.0, 1.0);
       final rows = 10;
       final count = 16 + (progress * 6).round();
       return _LevelConfig(
         difficulty: 'Hard',
         rows: rows,
         cols: rows,
-        arrowCount: count,
+        arrowCount: count.clamp(16, 22),
         shape: shapes[(levelId % 7)],
       );
     } else if (levelId <= 400) {
       // Super Hard
-      final progress = (levelId - 300) / 100.0;
+      final progress = ((levelId - 300) / 100.0).clamp(0.0, 1.0);
       final rows = 11;
       final count = 22 + (progress * 6).round();
       return _LevelConfig(
         difficulty: 'Super Hard',
         rows: rows,
         cols: rows,
-        arrowCount: count,
+        arrowCount: count.clamp(22, 28),
         shape: shapes[(levelId % shapes.length)],
       );
     } else {
       // Master
-      final progress = (levelId - 400) / 100.0;
+      final progress = ((levelId - 400) / 100.0).clamp(0.0, 1.0);
       final rows = 12;
       final count = 26 + (progress * 8).round();
       return _LevelConfig(
         difficulty: 'Master',
         rows: rows,
         cols: rows,
-        arrowCount: count,
+        arrowCount: count.clamp(26, 32),
         shape: shapes[(levelId % shapes.length)],
       );
     }
