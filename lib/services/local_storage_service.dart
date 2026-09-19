@@ -15,9 +15,20 @@ class LocalStorageService {
     return LocalStorageService(prefs);
   }
 
+  String _keyWithUser(String baseKey, String? userId) {
+    if (userId == null || userId.isEmpty || userId == 'guest' || userId == 'guest_user') {
+      return '${baseKey}_guest';
+    }
+    return '${baseKey}_$userId';
+  }
+
   // --- Level Progress ---
-  List<LevelProgress> loadAllProgress() {
-    final raw = _prefs.getString(AppConstants.keyUserProgress);
+  List<LevelProgress> loadAllProgress({String? userId}) {
+    if (userId == 'guest' || userId == 'guest_user') {
+      return [];
+    }
+    final key = _keyWithUser(AppConstants.keyUserProgress, userId);
+    final raw = _prefs.getString(key) ?? (userId != null ? null : _prefs.getString(AppConstants.keyUserProgress));
     if (raw == null || raw.isEmpty) return [];
 
     try {
@@ -28,8 +39,14 @@ class LocalStorageService {
     }
   }
 
-  Future<void> saveProgress(LevelProgress progress) async {
-    final all = loadAllProgress();
+  Future<void> saveProgress(LevelProgress progress, {String? userId}) async {
+    // Guest progress is NOT saved permanently (always resets to Level 1 on new session)
+    if (userId == null || userId == 'guest' || userId == 'guest_user') {
+      return;
+    }
+
+    final key = _keyWithUser(AppConstants.keyUserProgress, userId);
+    final all = loadAllProgress(userId: userId);
     final index = all.indexWhere((p) => p.levelId == progress.levelId);
     if (index >= 0) {
       all[index] = progress;
@@ -37,23 +54,39 @@ class LocalStorageService {
       all.add(progress);
     }
     await _prefs.setString(
-      AppConstants.keyUserProgress,
+      key,
       jsonEncode(all.map((p) => p.toJson()).toList()),
     );
   }
 
-  LevelProgress? getProgress(int levelId) {
-    final all = loadAllProgress();
+  Future<void> clearGuestData() async {
+    await _prefs.remove('${AppConstants.keyUserProgress}_guest');
+    await _prefs.remove(AppConstants.keyUserProgress);
+    await _prefs.remove('${AppConstants.keyCachedProfile}_guest');
+  }
+
+  LevelProgress? getProgress(int levelId, {String? userId}) {
+    final all = loadAllProgress(userId: userId);
     final index = all.indexWhere((p) => p.levelId == levelId);
     return index >= 0 ? all[index] : null;
   }
 
   // --- Profile ---
-  UserProfile loadProfile() {
-    final raw = _prefs.getString(AppConstants.keyCachedProfile);
+  UserProfile loadProfile({String? userId}) {
+    if (userId == 'guest' || userId == 'guest_user') {
+      return const UserProfile(
+        id: 'guest',
+        username: 'Guest Player',
+        coins: 100,
+        level: 1,
+        xp: 0,
+      );
+    }
+    final key = _keyWithUser(AppConstants.keyCachedProfile, userId);
+    final raw = _prefs.getString(key) ?? (userId != null ? null : _prefs.getString(AppConstants.keyCachedProfile));
     if (raw == null || raw.isEmpty) {
       return const UserProfile(
-        id: 'guest_user',
+        id: 'guest',
         username: 'Guest Player',
         coins: 100,
         level: 1,
@@ -63,13 +96,17 @@ class LocalStorageService {
     try {
       return UserProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
-      return const UserProfile(id: 'guest_user', username: 'Guest Player');
+      return const UserProfile(id: 'guest', username: 'Guest Player');
     }
   }
 
   Future<void> saveProfile(UserProfile profile) async {
+    if (profile.id == 'guest' || profile.id == 'guest_user') {
+      return;
+    }
+    final key = _keyWithUser(AppConstants.keyCachedProfile, profile.id);
     await _prefs.setString(
-      AppConstants.keyCachedProfile,
+      key,
       jsonEncode(profile.toJson()),
     );
   }

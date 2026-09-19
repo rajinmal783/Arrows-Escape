@@ -76,15 +76,3 @@ class PuzzleSolver {
     );
   }
 }
-
-class _SearchNode {
-  final List<Arrow> remainingArrows;
-  final List<String> clearedOrder;
-  final int depth;
-
-  const _SearchNode({
-    required this.remainingArrows,
-    required this.clearedOrder,
-    required this.depth,
-  });
-}

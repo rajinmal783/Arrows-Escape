@@ -29,17 +29,26 @@ class LevelProgressNotifier extends StateNotifier<LevelProgressState> {
       : super(const LevelProgressState(progressMap: {})) {
     loadProgress();
     
-    // Sync when user logs in
+    // Sync when user logs in or reset when guest
     _ref.listen(authProvider, (previous, next) {
       if (next.user != null && previous?.user?.id != next.user!.id) {
         _ref.read(syncServiceProvider).syncAll().then((_) => loadProgress());
+      } else if (next.user == null) {
+        resetToLevelOne();
       }
     });
   }
 
   void loadProgress() {
+    final auth = _ref.read(authProvider);
+    if (auth.user == null) {
+      // Guest always starts at Level 1 with 0 saved history
+      resetToLevelOne();
+      return;
+    }
+
     final storage = _ref.read(localStorageProvider);
-    final all = storage.loadAllProgress();
+    final all = storage.loadAllProgress(userId: auth.user!.id);
     final map = {for (var p in all) p.levelId: p};
 
     int maxUnlocked = 1;
@@ -57,6 +66,14 @@ class LevelProgressNotifier extends StateNotifier<LevelProgressState> {
       progressMap: map,
       highestUnlockedLevel: maxUnlocked,
       totalStars: starsCount,
+    );
+  }
+
+  void resetToLevelOne() {
+    state = const LevelProgressState(
+      progressMap: {},
+      highestUnlockedLevel: 1,
+      totalStars: 0,
     );
   }
 
@@ -85,11 +102,7 @@ class LevelProgressNotifier extends StateNotifier<LevelProgressState> {
       completedAt: DateTime.now(),
     );
 
-    // Save locally
-    final storage = _ref.read(localStorageProvider);
-    await storage.saveProgress(progress);
-
-    // Update state
+    // Update in-memory state so user or guest can progress to the next level
     final newMap = Map<int, LevelProgress>.from(state.progressMap)..[levelId] = progress;
     final newUnlocked = levelId + 1 > state.highestUnlockedLevel ? levelId + 1 : state.highestUnlockedLevel;
     int newTotalStars = 0;
@@ -103,10 +116,19 @@ class LevelProgressNotifier extends StateNotifier<LevelProgressState> {
       totalStars: newTotalStars,
     );
 
-    // Push to Supabase if logged in
+    // Persist to storage and Supabase Cloud ONLY for authenticated Google users
     final auth = _ref.read(authProvider);
     if (auth.user != null) {
+      final storage = _ref.read(localStorageProvider);
+      await storage.saveProgress(progress, userId: auth.user!.id);
       await _ref.read(supabaseServiceProvider).upsertLevelProgress(auth.user!.id, progress);
+      await _ref.read(supabaseServiceProvider).updateLeaderboardScore(
+        userId: auth.user!.id,
+        periodType: 'all_time',
+        periodKey: 'global',
+        score: newTotalStars * 1000,
+        stars: newTotalStars,
+      );
     }
   }
 }

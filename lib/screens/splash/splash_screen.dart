@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
+import '../../services/supabase_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -33,10 +34,18 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigate to Home after brief splash
-    Future.delayed(const Duration(milliseconds: 2200), () {
+    // Navigate after brief splash
+    Future.delayed(const Duration(milliseconds: 2000), () {
       if (mounted) {
-        context.go('/home');
+        final client = SupabaseService.client;
+        final user = client?.auth.currentUser;
+        if (user != null) {
+          // Already logged in with Google -> remember session & continue to home
+          context.go('/home');
+        } else {
+          // Not logged in -> ask user to Login with Google or Play as Guest
+          context.go('/login');
+        }
       }
     });
   }

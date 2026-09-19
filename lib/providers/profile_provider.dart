@@ -7,15 +7,29 @@ class ProfileNotifier extends StateNotifier<UserProfile> {
   final Ref _ref;
 
   ProfileNotifier(this._ref)
-      : super(const UserProfile(id: 'guest', username: 'Player', coins: 100)) {
+      : super(const UserProfile(id: 'guest', username: 'Guest Player', coins: 100)) {
     loadProfile();
     
-    // Listen for auth changes to pull cloud profile
+    // Listen for auth changes to pull cloud profile or reset to guest
     _ref.listen(authProvider, (previous, next) {
       if (next.user != null && previous?.user?.id != next.user!.id) {
         _pullCloudProfile(next.user!.id);
+      } else if (next.user == null) {
+        resetToGuest();
       }
     });
+  }
+
+  void resetToGuest() {
+    state = const UserProfile(
+      id: 'guest',
+      username: 'Guest Player',
+      coins: 100,
+      level: 1,
+      xp: 0,
+      hintsCount: 3,
+      undosCount: 3,
+    );
   }
 
   Future<void> _pullCloudProfile(String userId) async {
@@ -28,8 +42,13 @@ class ProfileNotifier extends StateNotifier<UserProfile> {
   }
 
   void loadProfile() {
+    final auth = _ref.read(authProvider);
+    if (auth.user == null) {
+      resetToGuest();
+      return;
+    }
     final storage = _ref.read(localStorageProvider);
-    state = storage.loadProfile();
+    state = storage.loadProfile(userId: auth.user!.id);
   }
 
   Future<void> addRewards({required int xp, required int coins}) async {
@@ -91,11 +110,10 @@ class ProfileNotifier extends StateNotifier<UserProfile> {
   }
 
   Future<void> _save() async {
-    final storage = _ref.read(localStorageProvider);
-    await storage.saveProfile(state);
-
     final auth = _ref.read(authProvider);
     if (auth.user != null) {
+      final storage = _ref.read(localStorageProvider);
+      await storage.saveProfile(state);
       await _ref.read(supabaseServiceProvider).upsertProfile(state);
     }
   }

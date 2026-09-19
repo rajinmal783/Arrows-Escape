@@ -37,7 +37,7 @@ class SyncService {
 
   Future<void> _syncLevelProgress(String userId) async {
     final cloudRecords = await _supabase.fetchCloudProgress(userId);
-    final localRecords = _local.loadAllProgress();
+    final localRecords = _local.loadAllProgress(userId: userId);
 
     final cloudMap = {for (var p in cloudRecords) p.levelId: p};
     final localMap = {for (var p in localRecords) p.levelId: p};
@@ -61,19 +61,19 @@ class SyncService {
           hintsUsed: (local.hintsUsed > cloud.hintsUsed ? local.hintsUsed : cloud.hintsUsed),
           completedAt: local.completedAt ?? cloud.completedAt,
         );
-        await _local.saveProgress(merged);
+        await _local.saveProgress(merged, userId: userId);
         await _supabase.upsertLevelProgress(userId, merged);
       } else if (local != null) {
         await _supabase.upsertLevelProgress(userId, local);
       } else if (cloud != null) {
-        await _local.saveProgress(cloud);
+        await _local.saveProgress(cloud, userId: userId);
       }
     }
   }
 
   Future<void> _syncUserProfileAndInventory(String userId, dynamic user) async {
     final cloudProfile = await _supabase.fetchProfile(userId);
-    final localProfile = _local.loadProfile();
+    final localProfile = _local.loadProfile(userId: userId);
 
     final metaName = (user.userMetadata?['full_name'] as String?) ??
         (user.userMetadata?['name'] as String?) ??

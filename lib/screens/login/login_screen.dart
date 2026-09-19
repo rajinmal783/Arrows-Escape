@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/level_provider.dart';
+import '../../providers/profile_provider.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -121,6 +123,8 @@ class LoginScreen extends ConsumerWidget {
                   child: TextButton(
                     onPressed: () {
                       ref.read(authProvider.notifier).continueAsGuest();
+                      ref.read(levelProgressProvider.notifier).resetToLevelOne();
+                      ref.read(profileProvider.notifier).resetToGuest();
                       context.go('/home');
                     },
                     child: const Text(

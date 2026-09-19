@@ -95,13 +95,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  void continueAsGuest() {
+  Future<void> continueAsGuest() async {
     state = state.copyWith(isGuest: true, clearUser: true, isLoading: false);
+    await _ref.read(localStorageProvider).clearGuestData();
   }
 
   Future<void> signOut() async {
     state = state.copyWith(isLoading: true);
     await _ref.read(supabaseServiceProvider).signOut();
+    await _ref.read(localStorageProvider).clearGuestData();
     state = const AuthState(isGuest: false);
   }
 }
