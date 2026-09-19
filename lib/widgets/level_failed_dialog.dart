@@ -30,7 +30,7 @@ class LevelFailedDialog extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: AppColors.accentRed.withOpacity(0.12),
+                color: AppColors.accentRed.withAlpha(31),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

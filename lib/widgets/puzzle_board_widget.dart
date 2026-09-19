@@ -7,6 +7,7 @@ class PuzzleBoardWidget extends StatefulWidget {
   final List<Arrow> arrows;
   final int rows;
   final int cols;
+  final String difficulty;
   final bool isDark;
   final bool showGrid;
   final String? hintArrowId;
@@ -19,6 +20,7 @@ class PuzzleBoardWidget extends StatefulWidget {
     required this.arrows,
     required this.rows,
     required this.cols,
+    required this.difficulty,
     required this.isDark,
     required this.showGrid,
     this.hintArrowId,
@@ -135,6 +137,7 @@ class _PuzzleBoardWidgetState extends State<PuzzleBoardWidget>
                       arrows: widget.arrows,
                       rows: widget.rows,
                       cols: widget.cols,
+                      difficulty: widget.difficulty,
                       isDark: widget.isDark,
                       showGrid: widget.showGrid,
                       hintArrowId: widget.hintArrowId,

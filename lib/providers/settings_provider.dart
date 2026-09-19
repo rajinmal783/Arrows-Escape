@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'storage_provider.dart';
+import 'auth_provider.dart';
 import '../models/user_settings.dart';
 
 class SettingsNotifier extends StateNotifier<UserSettings> {
@@ -47,6 +48,11 @@ class SettingsNotifier extends StateNotifier<UserSettings> {
   Future<void> _save() async {
     final storage = _ref.read(localStorageProvider);
     await storage.saveSettings(state);
+
+    final auth = _ref.read(authProvider);
+    if (auth.user != null) {
+      await _ref.read(supabaseServiceProvider).upsertUserSettings(auth.user!.id, state);
+    }
   }
 }
 

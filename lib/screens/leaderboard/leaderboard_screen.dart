@@ -85,7 +85,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         color: isMe
-                            ? AppColors.primaryBlue.withOpacity(0.15)
+                            ? AppColors.primaryBlue.withAlpha(38)
                             : (isDark ? AppColors.surfaceDark : Colors.white),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
@@ -106,7 +106,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
                           // Avatar
                           CircleAvatar(
                             radius: 18,
-                            backgroundColor: AppColors.primaryBlue.withOpacity(0.2),
+                            backgroundColor: AppColors.primaryBlue.withAlpha(51),
                             child: Text(
                               entry.username.isNotEmpty ? entry.username[0].toUpperCase() : 'P',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),

@@ -5,6 +5,7 @@ class BoosterBar extends StatelessWidget {
   final int hints;
   final int undos;
   final bool gridVisible;
+  final bool showGridToggle;
   final VoidCallback onHint;
   final VoidCallback onUndo;
   final VoidCallback onGridToggle;
@@ -15,6 +16,7 @@ class BoosterBar extends StatelessWidget {
     required this.hints,
     required this.undos,
     required this.gridVisible,
+    this.showGridToggle = true,
     required this.onHint,
     required this.onUndo,
     required this.onGridToggle,
@@ -59,13 +61,14 @@ class BoosterBar extends StatelessWidget {
           ),
 
           // Grid Toggle Booster
-          _buildBoosterItem(
-            icon: Icons.grid_4x4_rounded,
-            label: 'Grid',
-            isActive: gridVisible,
-            onTap: onGridToggle,
-            isDark: isDark,
-          ),
+          if (showGridToggle)
+            _buildBoosterItem(
+              icon: Icons.grid_4x4_rounded,
+              label: 'Grid',
+              isActive: gridVisible,
+              onTap: onGridToggle,
+              isDark: isDark,
+            ),
         ],
       ),
     );
@@ -82,7 +85,7 @@ class BoosterBar extends StatelessWidget {
     bool isPrimary = false,
   }) {
     final bg = isPrimary
-        ? AppColors.primaryBlue.withOpacity(0.12)
+        ? AppColors.primaryBlue.withAlpha(31)
         : (isDark ? AppColors.surfaceDark : AppColors.cardLight);
 
     final iconColor = isPrimary
@@ -112,7 +115,7 @@ class BoosterBar extends StatelessWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),

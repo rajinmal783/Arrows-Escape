@@ -5,6 +5,7 @@ import '../models/user_profile.dart';
 import '../models/level_progress.dart';
 import '../models/leaderboard_entry.dart';
 import '../models/achievement.dart';
+import '../models/user_settings.dart';
 
 class SupabaseService {
   static SupabaseClient? get client {
@@ -19,6 +20,7 @@ class SupabaseService {
     try {
       await Supabase.initialize(
         url: AppConstants.supabaseUrl,
+        // ignore: deprecated_member_use
         anonKey: AppConstants.supabaseAnonKey,
       );
     } catch (e) {
@@ -59,7 +61,7 @@ class SupabaseService {
     }
   }
 
-  // --- Profile ---
+  // --- Profile & Inventory ---
   Future<UserProfile?> fetchProfile(String userId) async {
     final s = client;
     if (s == null) return null;
@@ -71,7 +73,12 @@ class SupabaseService {
           .maybeSingle();
 
       if (res != null) {
-        return UserProfile.fromJson(res);
+        final profile = UserProfile.fromJson(res);
+        final inventory = await fetchUserInventory(userId);
+        return profile.copyWith(
+          hintsCount: inventory['hint'] ?? profile.hintsCount,
+          undosCount: inventory['undo'] ?? profile.undosCount,
+        );
       }
     } catch (e) {
       debugPrint('Error fetching profile: $e');
@@ -83,9 +90,96 @@ class SupabaseService {
     final s = client;
     if (s == null || !isAuthenticated) return;
     try {
-      await s.from('profiles').upsert(profile.toJson());
+      // 1. Upsert public.profiles with strictly schema-defined columns
+      await s.from('profiles').upsert(profile.toSupabaseProfileMap());
+
+      // 2. Persist booster counts to public.user_inventory
+      await upsertInventoryItem(profile.id, 'hint', profile.hintsCount);
+      await upsertInventoryItem(profile.id, 'undo', profile.undosCount);
     } catch (e) {
       debugPrint('Error updating profile: $e');
+    }
+  }
+
+  Future<Map<String, int>> fetchUserInventory(String userId) async {
+    final s = client;
+    if (s == null) return {};
+    try {
+      final res = await s
+          .from('user_inventory')
+          .select('item_code, quantity')
+          .eq('user_id', userId);
+      final map = <String, int>{};
+      for (final item in (res as List)) {
+        final code = item['item_code'] as String?;
+        final qty = item['quantity'];
+        if (code != null && qty != null) {
+          map[code] = (qty as num).toInt();
+        }
+      }
+      return map;
+    } catch (e) {
+      debugPrint('Error fetching inventory: $e');
+      return {};
+    }
+  }
+
+  Future<void> upsertInventoryItem(
+    String userId,
+    String itemCode,
+    int quantity, {
+    String itemType = 'booster',
+  }) async {
+    final s = client;
+    if (s == null || !isAuthenticated) return;
+    try {
+      await s.from('user_inventory').upsert(
+        {
+          'user_id': userId,
+          'item_code': itemCode,
+          'item_type': itemType,
+          'quantity': quantity,
+          'unlocked_at': DateTime.now().toIso8601String(),
+        },
+        onConflict: 'user_id,item_code',
+      );
+    } catch (e) {
+      debugPrint('Error upserting inventory item ($itemCode): $e');
+    }
+  }
+
+  // --- User Settings Sync ---
+  Future<UserSettings?> fetchUserSettings(String userId) async {
+    final s = client;
+    if (s == null) return null;
+    try {
+      final res = await s
+          .from('user_settings')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (res != null) {
+        return UserSettings.fromJson(res);
+      }
+    } catch (e) {
+      debugPrint('Error fetching user settings: $e');
+    }
+    return null;
+  }
+
+  Future<void> upsertUserSettings(String userId, UserSettings settings) async {
+    final s = client;
+    if (s == null || !isAuthenticated) return;
+    try {
+      final data = settings.toJson();
+      data['user_id'] = userId;
+      data['updated_at'] = DateTime.now().toIso8601String();
+      await s.from('user_settings').upsert(
+            data,
+            onConflict: 'user_id',
+          );
+    } catch (e) {
+      debugPrint('Error syncing settings: $e');
     }
   }
 

@@ -58,7 +58,7 @@ class LevelCompleteDialog extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 6.0),
                   child: Icon(
                     isAwarded ? Icons.star_rounded : Icons.star_outline_rounded,
-                    color: isAwarded ? AppColors.accentAmber : Colors.grey.withOpacity(0.3),
+                    color: isAwarded ? AppColors.accentAmber : Colors.grey.withAlpha(77),
                     size: 48,
                   ),
                 );

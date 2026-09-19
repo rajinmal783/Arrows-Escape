@@ -28,6 +28,13 @@ class LevelProgressNotifier extends StateNotifier<LevelProgressState> {
   LevelProgressNotifier(this._ref)
       : super(const LevelProgressState(progressMap: {})) {
     loadProgress();
+    
+    // Sync when user logs in
+    _ref.listen(authProvider, (previous, next) {
+      if (next.user != null && previous?.user?.id != next.user!.id) {
+        _ref.read(syncServiceProvider).syncAll().then((_) => loadProgress());
+      }
+    });
   }
 
   void loadProgress() {

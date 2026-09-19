@@ -10,6 +10,8 @@ class UserProfile {
   final int totalStars;
   final int currentStreak;
   final int longestStreak;
+  final int hintsCount;
+  final int undosCount;
 
   const UserProfile({
     required this.id,
@@ -23,6 +25,8 @@ class UserProfile {
     this.totalStars = 0,
     this.currentStreak = 0,
     this.longestStreak = 0,
+    this.hintsCount = 3,
+    this.undosCount = 3,
   });
 
   int get nextLevelXp => level * 150;
@@ -40,6 +44,24 @@ class UserProfile {
         'total_stars': totalStars,
         'current_streak': currentStreak,
         'longest_streak': longestStreak,
+        'hints_count': hintsCount,
+        'undos_count': undosCount,
+      };
+
+  /// Schema mapping specifically for public.profiles in Supabase (excluding inventory columns)
+  Map<String, dynamic> toSupabaseProfileMap() => {
+        'id': id,
+        'username': username,
+        'full_name': fullName,
+        'email': email,
+        'avatar_url': avatarUrl,
+        'level': level,
+        'xp': xp,
+        'coins': coins,
+        'total_stars': totalStars,
+        'current_streak': currentStreak,
+        'longest_streak': longestStreak,
+        'updated_at': DateTime.now().toIso8601String(),
       };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -55,6 +77,8 @@ class UserProfile {
       totalStars: json['total_stars'] as int? ?? 0,
       currentStreak: json['current_streak'] as int? ?? 0,
       longestStreak: json['longest_streak'] as int? ?? 0,
+      hintsCount: json['hints_count'] as int? ?? 3,
+      undosCount: json['undos_count'] as int? ?? 3,
     );
   }
 
@@ -70,6 +94,8 @@ class UserProfile {
     int? totalStars,
     int? currentStreak,
     int? longestStreak,
+    int? hintsCount,
+    int? undosCount,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -83,6 +109,8 @@ class UserProfile {
       totalStars: totalStars ?? this.totalStars,
       currentStreak: currentStreak ?? this.currentStreak,
       longestStreak: longestStreak ?? this.longestStreak,
+      hintsCount: hintsCount ?? this.hintsCount,
+      undosCount: undosCount ?? this.undosCount,
     );
   }
 }

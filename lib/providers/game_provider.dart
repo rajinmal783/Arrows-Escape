@@ -25,6 +25,7 @@ class GameNotifier extends StateNotifier<GameState?> {
   }
 
   void _startLevel(PuzzleLevel level) {
+    final profile = _ref.read(profileProvider);
     state = GameState(
       level: level,
       activeArrows: List<Arrow>.from(level.arrows),
@@ -32,11 +33,12 @@ class GameNotifier extends StateNotifier<GameState?> {
       moves: 0,
       mistakes: 0,
       lives: 3,
-      hintsRemaining: 3,
-      undosRemaining: 3,
+      hintsRemaining: profile.hintsCount,
+      undosRemaining: profile.undosCount,
       undoStack: [],
       isCompleted: false,
       isFailed: false,
+      gridVisible: level.difficulty == 'Beginner' || level.difficulty == 'Normal',
     );
   }
 
@@ -48,6 +50,9 @@ class GameNotifier extends StateNotifier<GameState?> {
   Future<void> tapArrow(String arrowId) async {
     final s = state;
     if (s == null || s.isCompleted || s.isFailed) return;
+
+    // Prevent multiple arrows moving at once
+    if (s.activeArrows.any((a) => a.state == ArrowState.moving)) return;
 
     final targetArrowIndex = s.activeArrows.indexWhere((a) => a.id == arrowId);
     if (targetArrowIndex < 0) return;
@@ -72,20 +77,38 @@ class GameNotifier extends StateNotifier<GameState?> {
       final undoList = List<List<Arrow>>.from(s.undoStack)
         ..add(s.activeArrows.map((a) => a.copyWith()).toList());
 
-      // Mark moving
-      final movingArrows = List<Arrow>.from(s.activeArrows);
-      movingArrows[targetArrowIndex] = targetArrow.copyWith(state: ArrowState.moving);
+      // Mark moving and animate escape with a fluid snake motion
+      const int steps = 25;
+      const int stepDuration = 16; // total ~400ms for a smoother slither
 
-      state = s.copyWith(
-        activeArrows: movingArrows,
-        moves: s.moves + 1,
-        undoStack: undoList,
-        clearHint: true,
-        clearBlocked: true,
-      );
+      for (int i = 0; i <= steps; i++) {
+        final currentS = state;
+        // Safety: If state was reset (e.g. restart level) or modified externally, stop animation
+        if (currentS == null || currentS.level.id != s.level.id) break;
+        if (!currentS.activeArrows.any((a) => a.id == targetArrow.id)) break;
 
-      // Transition to cleared after exit animation
-      await Future.delayed(const Duration(milliseconds: 240));
+        final progress = i / steps;
+        final updatedArrows = currentS.activeArrows.map((a) {
+          if (a.id == targetArrow.id) {
+            return a.copyWith(
+              state: ArrowState.moving,
+              animationProgress: progress,
+            );
+          }
+          return a;
+        }).toList();
+
+        state = currentS.copyWith(
+          activeArrows: updatedArrows,
+          // Update moves and undo stack only once at the beginning
+          moves: i == 0 ? s.moves + 1 : currentS.moves,
+          undoStack: i == 0 ? undoList : currentS.undoStack,
+          clearHint: true,
+          clearBlocked: true,
+        );
+
+        await Future.delayed(const Duration(milliseconds: stepDuration));
+      }
 
       if (state == null) return;
       final updatedRemaining = state!.activeArrows
@@ -187,6 +210,7 @@ class GameNotifier extends StateNotifier<GameState?> {
       hintsRemaining: s.hintsRemaining - 1,
       hintArrowId: recommended.id,
     );
+    _ref.read(profileProvider.notifier).useHint();
     _ref.read(audioServiceProvider).playTap();
   }
 
@@ -205,6 +229,7 @@ class GameNotifier extends StateNotifier<GameState?> {
       clearHint: true,
       clearBlocked: true,
     );
+    _ref.read(profileProvider.notifier).useUndo();
     _ref.read(audioServiceProvider).playTap();
   }
 

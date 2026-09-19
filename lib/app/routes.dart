@@ -12,9 +12,11 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/help/help_screen.dart';
 import '../screens/privacy/privacy_screen.dart';
+import '../screens/not_found_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
+  errorBuilder: (context, state) => const NotFoundScreen(),
   routes: [
     GoRoute(
       path: '/splash',

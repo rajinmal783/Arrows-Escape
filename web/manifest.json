@@ -1,12 +1,15 @@
 {
+    "id": "/",
     "name": "Arrow Escape",
     "short_name": "Arrow Escape",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#F8FAFC",
-    "theme_color": "#172554",
+    "background_color": "#0F172A",
+    "theme_color": "#1E3A8A",
     "description": "Arrow Escape: Think. Tap. Escape. A casual logic puzzle game.",
     "orientation": "portrait-primary",
+    "categories": ["games", "puzzle"],
+    "lang": "en",
     "prefer_related_applications": false,
     "icons": [
         {

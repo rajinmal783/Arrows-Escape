@@ -12,6 +12,12 @@ class LoginScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.user != null && context.mounted) {
+        context.go('/home');
+      }
+    });
+
     return Scaffold(
       body: SafeArea(
         child: Center(

@@ -39,72 +39,66 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
     });
   }
 
-  void _checkEndgameModals(BuildContext context, GameState? gameState) {
-    if (gameState == null || _dialogShown) return;
+  void _showLevelComplete(BuildContext context, GameState gameState) {
+    _dialogShown = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => LevelCompleteDialog(
+        levelId: gameState.level.id,
+        stars: gameState.stars,
+        score: gameState.score,
+        moves: gameState.moves,
+        xpEarned: 100 * gameState.stars,
+        coinsEarned: 20 * gameState.stars,
+        onNext: () {
+          Navigator.of(dialogCtx).pop();
+          _dialogShown = false;
+          if (widget.isDaily) {
+            context.go('/home');
+          } else {
+            final nextId = widget.levelId + 1;
+            context.go('/game/$nextId');
+            ref.read(gameProvider.notifier).loadLevel(nextId);
+          }
+        },
+        onReplay: () {
+          Navigator.of(dialogCtx).pop();
+          _dialogShown = false;
+          ref.read(gameProvider.notifier).restartLevel();
+        },
+        onHome: () {
+          Navigator.of(dialogCtx).pop();
+          _dialogShown = false;
+          context.go('/home');
+        },
+      ),
+    );
+  }
 
-    if (gameState.isCompleted) {
-      _dialogShown = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogCtx) => LevelCompleteDialog(
-            levelId: gameState.level.id,
-            stars: gameState.stars,
-            score: gameState.score,
-            moves: gameState.moves,
-            xpEarned: 100 * gameState.stars,
-            coinsEarned: 20 * gameState.stars,
-            onNext: () {
-              Navigator.of(dialogCtx).pop();
-              _dialogShown = false;
-              if (widget.isDaily) {
-                context.go('/home');
-              } else {
-                final nextId = widget.levelId + 1;
-                context.go('/game/$nextId');
-                ref.read(gameProvider.notifier).loadLevel(nextId);
-              }
-            },
-            onReplay: () {
-              Navigator.of(dialogCtx).pop();
-              _dialogShown = false;
-              ref.read(gameProvider.notifier).restartLevel();
-            },
-            onHome: () {
-              Navigator.of(dialogCtx).pop();
-              _dialogShown = false;
-              context.go('/home');
-            },
-          ),
-        );
-      });
-    } else if (gameState.isFailed) {
-      _dialogShown = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogCtx) => LevelFailedDialog(
-            onRetry: () {
-              Navigator.of(dialogCtx).pop();
-              _dialogShown = false;
-              ref.read(gameProvider.notifier).restartLevel();
-            },
-            onHome: () {
-              Navigator.of(dialogCtx).pop();
-              _dialogShown = false;
-              context.go('/home');
-            },
-            onLevels: () {
-              Navigator.of(dialogCtx).pop();
-              _dialogShown = false;
-              context.go('/levels');
-            },
-          ),
-        );
-      });
-    }
+  void _showLevelFailed(BuildContext context, GameState gameState) {
+    _dialogShown = true;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => LevelFailedDialog(
+        onRetry: () {
+          Navigator.of(dialogCtx).pop();
+          _dialogShown = false;
+          ref.read(gameProvider.notifier).restartLevel();
+        },
+        onHome: () {
+          Navigator.of(dialogCtx).pop();
+          _dialogShown = false;
+          context.go('/home');
+        },
+        onLevels: () {
+          Navigator.of(dialogCtx).pop();
+          _dialogShown = false;
+          context.go('/levels');
+        },
+      ),
+    );
   }
 
   @override
@@ -112,8 +106,16 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
     final gameState = ref.watch(gameProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Check completion or game over dialog triggers
-    _checkEndgameModals(context, gameState);
+    // Use ref.listen to handle one-time side effects like showing dialogs
+    ref.listen(gameProvider, (previous, next) {
+      if (next == null || _dialogShown) return;
+
+      if (next.isCompleted && (previous == null || !previous.isCompleted)) {
+        _showLevelComplete(context, next);
+      } else if (next.isFailed && (previous == null || !previous.isFailed)) {
+        _showLevelFailed(context, next);
+      }
+    });
 
     if (gameState == null) {
       return const Scaffold(
@@ -125,47 +127,55 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Column(
-          children: [
-            // Top HUD
-            HudHeader(
-              levelId: gameState.level.id,
-              difficulty: gameState.level.difficulty,
-              lives: gameState.lives,
-              isDaily: widget.isDaily,
-              onBack: () => context.go('/home'),
-              onSettings: () => context.push('/settings'),
-            ),
-
-            // Center Puzzle Canvas
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: PuzzleBoardWidget(
-                  arrows: gameState.activeArrows,
-                  rows: gameState.level.rows,
-                  cols: gameState.level.columns,
-                  isDark: isDark,
-                  showGrid: gameState.gridVisible,
-                  hintArrowId: gameState.hintArrowId,
-                  blockedArrowId: gameState.blockedArrowId,
-                  obstructingArrowId: gameState.obstructingArrowId,
-                  onArrowTapped: (id) => ref.read(gameProvider.notifier).tapArrow(id),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              children: [
+                // Top HUD
+                HudHeader(
+                  levelId: gameState.level.id,
+                  difficulty: gameState.level.difficulty,
+                  lives: gameState.lives,
+                  isDaily: widget.isDaily,
+                  onBack: () => context.go('/home'),
+                  onSettings: () => context.push('/settings'),
                 ),
-              ),
-            ),
 
-            // Bottom Booster Bar
-            BoosterBar(
-              hints: gameState.hintsRemaining,
-              undos: gameState.undosRemaining,
-              gridVisible: gameState.gridVisible,
-              onHint: () => ref.read(gameProvider.notifier).useHint(),
-              onUndo: () => ref.read(gameProvider.notifier).useUndo(),
-              onGridToggle: () => ref.read(gameProvider.notifier).toggleGrid(),
-              onRestart: () => ref.read(gameProvider.notifier).restartLevel(),
+                // Center Puzzle Canvas
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: PuzzleBoardWidget(
+                      arrows: gameState.activeArrows,
+                      rows: gameState.level.rows,
+                      cols: gameState.level.columns,
+                      difficulty: gameState.level.difficulty,
+                      isDark: isDark,
+                      showGrid: gameState.gridVisible,
+                      hintArrowId: gameState.hintArrowId,
+                      blockedArrowId: gameState.blockedArrowId,
+                      obstructingArrowId: gameState.obstructingArrowId,
+                      onArrowTapped: (id) => ref.read(gameProvider.notifier).tapArrow(id),
+                    ),
+                  ),
+                ),
+
+                // Bottom Booster Bar
+                BoosterBar(
+                  hints: gameState.hintsRemaining,
+                  undos: gameState.undosRemaining,
+                  gridVisible: gameState.gridVisible,
+                  showGridToggle: gameState.level.difficulty == 'Beginner' || 
+                                 gameState.level.difficulty == 'Normal',
+                  onHint: () => ref.read(gameProvider.notifier).useHint(),
+                  onUndo: () => ref.read(gameProvider.notifier).useUndo(),
+                  onGridToggle: () => ref.read(gameProvider.notifier).toggleGrid(),
+                  onRestart: () => ref.read(gameProvider.notifier).restartLevel(),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

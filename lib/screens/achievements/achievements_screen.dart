@@ -65,7 +65,7 @@ class _AchievementsScreenState extends ConsumerState<AchievementsScreen> {
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: AppColors.primaryBlue.withOpacity(0.12),
+                          color: AppColors.primaryBlue.withAlpha(31),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Center(

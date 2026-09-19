@@ -38,22 +38,27 @@ class ProfileScreen extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 44,
-                    backgroundColor: AppColors.primaryBlue.withOpacity(0.15),
-                    child: Text(
-                      profile.username.isNotEmpty ? profile.username[0].toUpperCase() : 'P',
-                      style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
-                    ),
+                    backgroundColor: AppColors.primaryBlue.withAlpha(38),
+                    backgroundImage: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
+                        ? NetworkImage(profile.avatarUrl!)
+                        : null,
+                    child: (profile.avatarUrl == null || profile.avatarUrl!.isEmpty)
+                        ? Text(
+                            profile.username.isNotEmpty ? profile.username[0].toUpperCase() : 'P',
+                            style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                          )
+                        : null,
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    profile.username,
+                    profile.fullName?.isNotEmpty == true ? profile.fullName! : profile.username,
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withOpacity(0.12),
+                      color: AppColors.primaryBlue.withAlpha(31),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -90,7 +95,7 @@ class ProfileScreen extends ConsumerWidget {
                     child: LinearProgressIndicator(
                       value: profile.xpProgress.clamp(0.0, 1.0),
                       minHeight: 8,
-                      backgroundColor: Colors.grey.withOpacity(0.2),
+                      backgroundColor: Colors.grey.withAlpha(51),
                       valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryBlue),
                     ),
                   ),
@@ -116,7 +121,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 28),
 
-            // Quick Actions: Achievements & Logout
+            // Quick Actions: Achievements, Sync & Logout
             ListTile(
               onTap: () => context.push('/achievements'),
               leading: const Icon(Icons.emoji_events_rounded, color: AppColors.primaryBlue),
@@ -127,7 +132,36 @@ class ProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
 
-            if (authState.user != null)
+            if (authState.user != null) ...[
+              ListTile(
+                onTap: authState.isLoading
+                    ? null
+                    : () async {
+                        final ok = await ref.read(authProvider.notifier).syncNow();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(ok ? 'Synced successfully with Supabase Cloud!' : 'Sync failed. Please check internet connection.'),
+                              backgroundColor: ok ? AppColors.accentGreen : AppColors.accentRed,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                leading: authState.isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      )
+                    : const Icon(Icons.cloud_sync_rounded, color: AppColors.primaryBlue),
+                title: const Text('Sync with Cloud', style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text('Back up progress, stats & boosters', style: TextStyle(fontSize: 12)),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                tileColor: isDark ? AppColors.surfaceDark : Colors.white,
+              ),
+              const SizedBox(height: 12),
               ListTile(
                 onTap: () async {
                   await ref.read(authProvider.notifier).signOut();
@@ -137,12 +171,13 @@ class ProfileScreen extends ConsumerWidget {
                 title: const Text('Log Out', style: TextStyle(color: AppColors.accentRed, fontWeight: FontWeight.bold)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 tileColor: isDark ? AppColors.surfaceDark : Colors.white,
-              )
-            else
+              ),
+            ] else
               ListTile(
                 onTap: () => context.push('/login'),
                 leading: const Icon(Icons.login_rounded, color: AppColors.primaryBlue),
                 title: const Text('Sign In with Google to Sync', style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text('Save your puzzle progress across all devices', style: TextStyle(fontSize: 12)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 tileColor: isDark ? AppColors.surfaceDark : Colors.white,
               ),

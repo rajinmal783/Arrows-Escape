@@ -44,11 +44,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void _init() {
     final client = SupabaseService.client;
     if (client != null) {
-      state = state.copyWith(user: client.auth.currentUser);
+      final current = client.auth.currentUser;
+      if (current != null) {
+        state = state.copyWith(user: current);
+        _syncOnLogin();
+      }
+
       client.auth.onAuthStateChange.listen((data) {
-        state = state.copyWith(user: data.session?.user);
-        if (data.session?.user != null) {
+        final sessionUser = data.session?.user;
+        state = state.copyWith(user: sessionUser);
+        if (sessionUser != null &&
+            (data.event == AuthChangeEvent.signedIn ||
+             data.event == AuthChangeEvent.initialSession ||
+             data.event == AuthChangeEvent.tokenRefreshed)) {
           _syncOnLogin();
+        } else if (data.event == AuthChangeEvent.signedOut) {
+          state = const AuthState(isGuest: false);
         }
       });
     }
@@ -58,6 +69,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await _ref.read(syncServiceProvider).syncAll();
     } catch (_) {}
+  }
+
+  Future<bool> syncNow() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      await _ref.read(syncServiceProvider).syncAll();
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      return false;
+    }
   }
 
   Future<bool> signInWithGoogle() async {

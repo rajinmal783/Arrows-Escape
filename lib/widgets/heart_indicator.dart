@@ -21,7 +21,7 @@ class HeartIndicator extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 2.0),
           child: Icon(
             isFilled ? Icons.favorite : Icons.favorite_border,
-            color: isFilled ? AppColors.accentRed : Colors.grey.withOpacity(0.4),
+            color: isFilled ? AppColors.accentRed : Colors.grey.withAlpha(102),
             size: 24,
           ),
         );

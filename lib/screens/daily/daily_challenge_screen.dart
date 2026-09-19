@@ -36,7 +36,7 @@ class DailyChallengeScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFEA580C).withOpacity(0.3),
+                      color: const Color(0xFFEA580C).withAlpha(77),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),

@@ -60,8 +60,8 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
 
           return GridView.builder(
             padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 80, // Better for responsive web layout
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               childAspectRatio: 0.9,
@@ -80,7 +80,7 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
                 child: Container(
                   decoration: BoxDecoration(
                     color: isCurrent
-                        ? AppColors.primaryBlue.withOpacity(0.15)
+                        ? AppColors.primaryBlue.withAlpha(38)
                         : (isUnlocked
                             ? (isDark ? AppColors.surfaceDark : Colors.white)
                             : (isDark ? const Color(0xFF131B2E) : const Color(0xFFF1F5F9))),
@@ -118,7 +118,7 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
                             return Icon(
                               filled ? Icons.star_rounded : Icons.star_outline_rounded,
                               size: 11,
-                              color: filled ? AppColors.accentAmber : Colors.grey.withOpacity(0.4),
+                              color: filled ? AppColors.accentAmber : Colors.grey.withAlpha(102),
                             );
                           }),
                         ),

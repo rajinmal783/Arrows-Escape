@@ -9,6 +9,22 @@ class ProfileNotifier extends StateNotifier<UserProfile> {
   ProfileNotifier(this._ref)
       : super(const UserProfile(id: 'guest', username: 'Player', coins: 100)) {
     loadProfile();
+    
+    // Listen for auth changes to pull cloud profile
+    _ref.listen(authProvider, (previous, next) {
+      if (next.user != null && previous?.user?.id != next.user!.id) {
+        _pullCloudProfile(next.user!.id);
+      }
+    });
+  }
+
+  Future<void> _pullCloudProfile(String userId) async {
+    final cloud = await _ref.read(supabaseServiceProvider).fetchProfile(userId);
+    if (cloud != null) {
+      state = cloud;
+      final storage = _ref.read(localStorageProvider);
+      await storage.saveProfile(cloud);
+    }
   }
 
   void loadProfile() {
@@ -36,6 +52,28 @@ class ProfileNotifier extends StateNotifier<UserProfile> {
     state = state.copyWith(coins: state.coins - amount);
     await _save();
     return true;
+  }
+
+  Future<void> addBoosters({int hints = 0, int undos = 0}) async {
+    state = state.copyWith(
+      hintsCount: state.hintsCount + hints,
+      undosCount: state.undosCount + undos,
+    );
+    await _save();
+  }
+
+  Future<void> useHint() async {
+    if (state.hintsCount > 0) {
+      state = state.copyWith(hintsCount: state.hintsCount - 1);
+      await _save();
+    }
+  }
+
+  Future<void> useUndo() async {
+    if (state.undosCount > 0) {
+      state = state.copyWith(undosCount: state.undosCount - 1);
+      await _save();
+    }
   }
 
   Future<void> updateStreak(int streak) async {

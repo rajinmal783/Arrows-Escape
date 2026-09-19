@@ -26,7 +26,7 @@ class ShopScreen extends ConsumerWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.accentAmber.withOpacity(0.15),
+                  color: AppColors.accentAmber.withAlpha(38),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -67,10 +67,13 @@ class ShopScreen extends ConsumerWidget {
               isDark: isDark,
               onBuy: () async {
                 final ok = await ref.read(profileProvider.notifier).spendCoins(50);
-                if (ok && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Purchased 3x Hints!')),
-                  );
+                if (ok) {
+                  await ref.read(profileProvider.notifier).addBoosters(hints: 3);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Purchased 3x Hints!')),
+                    );
+                  }
                 } else if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Not enough coins! Complete more levels.')),
@@ -90,10 +93,13 @@ class ShopScreen extends ConsumerWidget {
               isDark: isDark,
               onBuy: () async {
                 final ok = await ref.read(profileProvider.notifier).spendCoins(40);
-                if (ok && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Purchased 3x Undos!')),
-                  );
+                if (ok) {
+                  await ref.read(profileProvider.notifier).addBoosters(undos: 3);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Purchased 3x Undos!')),
+                    );
+                  }
                 } else if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Not enough coins!')),
@@ -147,7 +153,7 @@ class ShopScreen extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: palette.bgLight,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                          border: Border.all(color: Colors.grey.withAlpha(77)),
                         ),
                         child: Center(
                           child: Icon(Icons.arrow_forward_rounded, color: palette.lineLight, size: 28),
@@ -233,7 +239,7 @@ class ShopScreen extends ConsumerWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withOpacity(0.12),
+              color: AppColors.primaryBlue.withAlpha(31),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(icon, color: AppColors.primaryBlue, size: 24),
