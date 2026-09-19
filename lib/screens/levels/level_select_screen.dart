@@ -97,8 +97,18 @@ class _LevelSelectScreenState extends ConsumerState<LevelSelectScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (!isUnlocked)
-                        const Icon(Icons.lock_outline_rounded, size: 20, color: Colors.grey)
+                      if (!isUnlocked) ...[
+                        const Icon(Icons.lock_outline_rounded, size: 18, color: Colors.grey),
+                        const SizedBox(height: 2),
+                        const Text(
+                          '2★ Req',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ]
                       else ...[
                         Text(
                           '$levelId',

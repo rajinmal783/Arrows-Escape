@@ -57,9 +57,13 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
           if (widget.isDaily) {
             context.go('/home');
           } else {
-            final nextId = widget.levelId + 1;
-            context.go('/game/$nextId');
-            ref.read(gameProvider.notifier).loadLevel(nextId);
+            if (gameState.stars >= 2) {
+              final nextId = widget.levelId + 1;
+              context.go('/game/$nextId');
+              ref.read(gameProvider.notifier).loadLevel(nextId);
+            } else {
+              ref.read(gameProvider.notifier).restartLevel();
+            }
           }
         },
         onReplay: () {

@@ -87,24 +87,74 @@ class LevelCompleteDialog extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            // Next Level Primary Button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: onNext,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryBlue,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            // 2-Star Unlock Rule Banner
+            if (stars < 2)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.accentAmber.withAlpha(30),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.accentAmber.withAlpha(120), width: 1.5),
                 ),
-                child: const Text(
-                  'NEXT LEVEL',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lock_clock_rounded, color: AppColors.accentAmber, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Minimum 2 Stars (★★) required to unlock Level ${levelId + 1}!',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.accentAmber,
+                          height: 1.25,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+
+            // Primary Button: NEXT LEVEL (if >= 2 stars) or RETRY FOR 2 STARS (if < 2 stars)
+            if (stars >= 2)
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: onNext,
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                  label: const Text(
+                    'NEXT LEVEL',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBlue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: onReplay,
+                  icon: const Icon(Icons.replay_rounded, size: 20),
+                  label: const Text(
+                    'RETRY FOR 2 STARS',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accentAmber,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                ),
+              ),
             const SizedBox(height: 12),
 
             // Replay & Home Secondary Actions

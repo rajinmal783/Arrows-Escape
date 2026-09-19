@@ -77,9 +77,9 @@ class GameNotifier extends StateNotifier<GameState?> {
       final undoList = List<List<Arrow>>.from(s.undoStack)
         ..add(s.activeArrows.map((a) => a.copyWith()).toList());
 
-      // Mark moving and animate escape with a fluid snake motion
-      const int steps = 25;
-      const int stepDuration = 16; // total ~400ms for a smoother slither
+      // Mark moving and animate escape with a fluid, slow-motion snake slither
+      const int steps = 38;
+      const int stepDuration = 20; // total ~760ms for a majestic slow-motion snake slither
 
       for (int i = 0; i <= steps; i++) {
         final currentS = state;
@@ -87,7 +87,10 @@ class GameNotifier extends StateNotifier<GameState?> {
         if (currentS == null || currentS.level.id != s.level.id) break;
         if (!currentS.activeArrows.any((a) => a.id == targetArrow.id)) break;
 
-        final progress = i / steps;
+        // Smooth cubic curve for organic serpentine acceleration
+        final t = i / steps;
+        final progress = t * t * (3.0 - 2.0 * t);
+
         final updatedArrows = currentS.activeArrows.map((a) {
           if (a.id == targetArrow.id) {
             return a.copyWith(

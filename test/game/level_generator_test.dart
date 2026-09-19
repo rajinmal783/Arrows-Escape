@@ -94,5 +94,14 @@ void main() {
         expect(levelA.arrows[i].path.length, equals(levelB.arrows[i].path.length));
       }
     });
+
+    test('Generates arrows with various sizes and vibrant colors', () {
+      final level = LevelGenerator.generateLevel(250); // Hard level with 10x10
+      final lengths = level.arrows.map((a) => a.path.length).toSet();
+      expect(lengths.length, greaterThanOrEqualTo(2)); // multiple different lengths
+
+      final coloredArrows = level.arrows.where((a) => a.customColor != null).toList();
+      expect(coloredArrows, isNotEmpty); // vibrant colors present
+    });
   });
 }

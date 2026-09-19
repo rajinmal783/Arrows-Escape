@@ -56,9 +56,16 @@ class LevelProgressNotifier extends StateNotifier<LevelProgressState> {
     for (final p in all) {
       if (p.completed) {
         starsCount += p.stars;
-        if (p.levelId + 1 > maxUnlocked) {
-          maxUnlocked = p.levelId + 1;
-        }
+      }
+    }
+
+    // Minimum 2-Star Rule: Level L unlocks L+1 iff Level L is completed with >= 2 stars
+    while (true) {
+      final p = map[maxUnlocked];
+      if (p != null && p.completed && p.stars >= 2) {
+        maxUnlocked++;
+      } else {
+        break;
       }
     }
 
@@ -104,7 +111,18 @@ class LevelProgressNotifier extends StateNotifier<LevelProgressState> {
 
     // Update in-memory state so user or guest can progress to the next level
     final newMap = Map<int, LevelProgress>.from(state.progressMap)..[levelId] = progress;
-    final newUnlocked = levelId + 1 > state.highestUnlockedLevel ? levelId + 1 : state.highestUnlockedLevel;
+    
+    // Minimum 2-Star Rule: Calculate sequentially unlocked levels
+    int newUnlocked = 1;
+    while (true) {
+      final p = newMap[newUnlocked];
+      if (p != null && p.completed && p.stars >= 2) {
+        newUnlocked++;
+      } else {
+        break;
+      }
+    }
+
     int newTotalStars = 0;
     for (final p in newMap.values) {
       newTotalStars += p.stars;

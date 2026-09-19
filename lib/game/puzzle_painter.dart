@@ -82,7 +82,10 @@ class PuzzlePainter extends CustomPainter {
       final isMoving = arrow.state == ArrowState.moving;
 
       if (isMoving) {
-        lineColor = AppColors.validMoveHighlight.withAlpha(((1.0 - arrow.animationProgress).clamp(0.0, 1.0) * 255).toInt());
+        final baseColor = arrow.customColor ?? (isDark ? const Color(0xFF38BDF8) : AppColors.primaryBlue);
+        final fadeOut = (1.0 - ((arrow.animationProgress - 0.70) / 0.30).clamp(0.0, 1.0));
+        lineColor = baseColor.withAlpha((fadeOut * 255).toInt());
+        strokeWidth = baseStrokeWidth * 1.15;
       } else if (isHinted) {
         lineColor = AppColors.hintPulseGlow;
         strokeWidth = baseStrokeWidth * (1.1 + 0.15 * sin(pulseValue * pi * 2));
@@ -165,7 +168,7 @@ class PuzzlePainter extends CustomPainter {
 
     // Extend path out of board
     final lastPoint = points.last;
-    final maxDist = max(rows, cols) + 2.0;
+    final maxDist = max(rows, cols) + 3.0;
     Offset dirOffset;
     switch (arrow.direction) {
       case ArrowDirection.up:
@@ -187,37 +190,43 @@ class PuzzlePainter extends CustomPainter {
     }
 
     // 2. Calculate the portion of the path to draw
-    // The "snake" has a length equal to the original path length
     final double snakeLength = (arrow.path.length - 1).toDouble();
     final double totalTravel = points.length.toDouble() - 1.0;
-    
-    // progress 0.0: head is at points[snakeLength], tail is at points[0]
-    // progress 1.0: tail is at points[totalTravel]
-    final double currentHeadDist = snakeLength + (totalTravel - snakeLength + 2) * arrow.animationProgress;
+
+    final double currentHeadDist = snakeLength + (totalTravel - snakeLength + 2.0) * arrow.animationProgress;
     final double currentTailDist = currentHeadDist - snakeLength;
 
-    // Add traveling wave wiggle
     final pathLength = points.length.toDouble();
     final newPath = Path();
     bool firstPoint = true;
-    
-    // We sample the path and apply wiggle perpendicular to the segment direction
-    for (double d = currentTailDist; d <= currentHeadDist; d += 0.05) {
+
+    // Sample the path and apply organic serpentine wave perpendicular to segment direction
+    for (double d = currentTailDist; d <= currentHeadDist; d += 0.04) {
       final clampedD = d.clamp(0.0, pathLength - 1.0);
       final pos = _getPointAtDistance(points, clampedD);
-      
-      // Calculate wiggle based on time and distance along snake
-      final double distanceAlongSnake = d - currentTailDist;
-      // Less wiggle as it leaves the board
-      final double wiggleScale = (1.0 - (d / totalTravel)).clamp(0.0, 1.0);
-      final double wiggle = sin((distanceAlongSnake * 1.5) - (arrow.animationProgress * pi * 8)) * (cellSize * 0.1) * wiggleScale;
-      
-      Offset wiggledPos;
-      if (arrow.direction == ArrowDirection.up || arrow.direction == ArrowDirection.down) {
-        wiggledPos = pos + Offset(wiggle, 0);
+
+      // Compute local tangent and normal along the polyline
+      final dAhead = (clampedD + 0.1).clamp(0.0, pathLength - 1.0);
+      final dBehind = (clampedD - 0.1).clamp(0.0, pathLength - 1.0);
+      final pAhead = _getPointAtDistance(points, dAhead);
+      final pBehind = _getPointAtDistance(points, dBehind);
+      final tangent = pAhead - pBehind;
+      final tLen = sqrt(tangent.dx * tangent.dx + tangent.dy * tangent.dy);
+
+      Offset normal;
+      if (tLen > 0.001) {
+        normal = Offset(-tangent.dy / tLen, tangent.dx / tLen);
       } else {
-        wiggledPos = pos + Offset(0, wiggle);
+        normal = (arrow.direction == ArrowDirection.up || arrow.direction == ArrowDirection.down)
+            ? const Offset(1, 0)
+            : const Offset(0, 1);
       }
+
+      final double distanceAlongSnake = d - currentTailDist;
+      final double wiggleScale = (1.0 - (d / totalTravel)).clamp(0.0, 1.0);
+      // Traveling serpentine sine wave
+      final double wiggle = sin((distanceAlongSnake * 2.2) - (arrow.animationProgress * pi * 7.0)) * (cellSize * 0.13) * wiggleScale;
+      final wiggledPos = pos + normal * wiggle;
 
       if (firstPoint) {
         newPath.moveTo(wiggledPos.dx, wiggledPos.dy);
@@ -226,20 +235,39 @@ class PuzzlePainter extends CustomPainter {
         newPath.lineTo(wiggledPos.dx, wiggledPos.dy);
       }
     }
-    
+
+    // Ambient glow pass behind snake body
+    final glowPaint = Paint()
+      ..color = linePaint.color.withAlpha((linePaint.color.a * 0.32 * 255).round().clamp(0, 255))
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = linePaint.strokeWidth * 1.75
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(newPath, glowPaint);
     canvas.drawPath(newPath, linePaint);
 
     // 3. Draw head at the front of the snake
     final headD = currentHeadDist.clamp(0.0, pathLength - 1.0);
     final headPosBase = _getPointAtDistance(points, headD);
-    final double headWiggle = sin(((currentHeadDist - currentTailDist) * 1.5) - (arrow.animationProgress * pi * 8)) * (cellSize * 0.1) * (1.0 - (headD / totalTravel)).clamp(0.0, 1.0);
-    
-    Offset headPos;
-    if (arrow.direction == ArrowDirection.up || arrow.direction == ArrowDirection.down) {
-      headPos = headPosBase + Offset(headWiggle, 0);
+
+    final dBehind = (headD - 0.1).clamp(0.0, pathLength - 1.0);
+    final pBehind = _getPointAtDistance(points, dBehind);
+    final tangent = headPosBase - pBehind;
+    final tLen = sqrt(tangent.dx * tangent.dx + tangent.dy * tangent.dy);
+
+    Offset headNormal;
+    if (tLen > 0.001) {
+      headNormal = Offset(-tangent.dy / tLen, tangent.dx / tLen);
     } else {
-      headPos = headPosBase + Offset(0, headWiggle);
+      headNormal = (arrow.direction == ArrowDirection.up || arrow.direction == ArrowDirection.down)
+          ? const Offset(1, 0)
+          : const Offset(0, 1);
     }
+
+    final double headWiggle = sin(((currentHeadDist - currentTailDist) * 2.2) - (arrow.animationProgress * pi * 7.0)) *
+        (cellSize * 0.13) *
+        (1.0 - (headD / totalTravel)).clamp(0.0, 1.0);
+    final headPos = headPosBase + headNormal * headWiggle;
 
     _drawSnakeHead(
       canvas: canvas,
@@ -253,7 +281,7 @@ class PuzzlePainter extends CustomPainter {
   Offset _getPointAtDistance(List<Offset> points, double d) {
     if (d <= 0) return points.first;
     if (d >= points.length - 1) return points.last;
-    
+
     final int index = d.floor();
     final double t = d - index;
     return Offset.lerp(points[index], points[index + 1], t)!;
@@ -299,6 +327,42 @@ class PuzzlePainter extends CustomPainter {
     }
     path.close();
     canvas.drawPath(path, headPaint);
+
+    // Subtle sleek snake eyes
+    if (color.a > 0.15) {
+      Offset eye1, eye2;
+      switch (direction) {
+        case ArrowDirection.up:
+          eye1 = Offset(cx - headSize * 0.32, cy - headSize * 0.15);
+          eye2 = Offset(cx + headSize * 0.32, cy - headSize * 0.15);
+          break;
+        case ArrowDirection.down:
+          eye1 = Offset(cx - headSize * 0.32, cy + headSize * 0.15);
+          eye2 = Offset(cx + headSize * 0.32, cy + headSize * 0.15);
+          break;
+        case ArrowDirection.left:
+          eye1 = Offset(cx - headSize * 0.15, cy - headSize * 0.32);
+          eye2 = Offset(cx - headSize * 0.15, cy + headSize * 0.32);
+          break;
+        case ArrowDirection.right:
+          eye1 = Offset(cx + headSize * 0.15, cy - headSize * 0.32);
+          eye2 = Offset(cx + headSize * 0.15, cy + headSize * 0.32);
+          break;
+      }
+
+      final eyeR = max(1.8, cellSize * 0.045);
+      final eyePaint = Paint()
+        ..color = Colors.white.withAlpha((color.a * 0.9 * 255).round().clamp(0, 255))
+        ..style = PaintingStyle.fill;
+      final pupilPaint = Paint()
+        ..color = Colors.black.withAlpha((color.a * 0.85 * 255).round().clamp(0, 255))
+        ..style = PaintingStyle.fill;
+
+      canvas.drawCircle(eye1, eyeR, eyePaint);
+      canvas.drawCircle(eye2, eyeR, eyePaint);
+      canvas.drawCircle(eye1, eyeR * 0.5, pupilPaint);
+      canvas.drawCircle(eye2, eyeR * 0.5, pupilPaint);
+    }
   }
 
   void _drawArrowHead({
