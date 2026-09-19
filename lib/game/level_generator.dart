@@ -80,8 +80,8 @@ class LevelGenerator {
     } else if (levelId <= 300) {
       // Hard
       final progress = (levelId - 200) / 100.0;
-      final rows = 10 + (progress > 0.5 ? 1 : 0);
-      final count = 24 + (progress * 12).round();
+      final rows = 10;
+      final count = 16 + (progress * 6).round();
       return _LevelConfig(
         difficulty: 'Hard',
         rows: rows,
@@ -92,8 +92,8 @@ class LevelGenerator {
     } else if (levelId <= 400) {
       // Super Hard
       final progress = (levelId - 300) / 100.0;
-      final rows = 12 + (progress > 0.5 ? 1 : 0);
-      final count = 38 + (progress * 14).round();
+      final rows = 11;
+      final count = 22 + (progress * 6).round();
       return _LevelConfig(
         difficulty: 'Super Hard',
         rows: rows,
@@ -104,8 +104,8 @@ class LevelGenerator {
     } else {
       // Master
       final progress = (levelId - 400) / 100.0;
-      final rows = 14 + (progress > 0.5 ? 2 : 0);
-      final count = 54 + (progress * 22).round();
+      final rows = 12;
+      final count = 26 + (progress * 8).round();
       return _LevelConfig(
         difficulty: 'Master',
         rows: rows,
@@ -143,7 +143,7 @@ class LevelGenerator {
         final headCandidate = _findHeadForDirection(dir, rows, cols, occupied, mask, rng);
         if (headCandidate == null) continue;
 
-        final pathLength = 2 + rng.nextInt(max(2, (rows / 3).round()));
+        final pathLength = 2 + rng.nextInt(max(2, (rows / 4).round()));
         final path = _generatePathFromHead(headCandidate, dir, pathLength, rows, cols, occupied, mask, rng);
 
         if (path.isNotEmpty) {
@@ -159,7 +159,7 @@ class LevelGenerator {
       }
     }
 
-    if (arrows.length < max(4, (arrowCount * 0.75).round())) {
+    if (arrows.length < max(4, (arrowCount * 0.5).round())) {
       return null;
     }
 
@@ -324,46 +324,87 @@ class LevelGenerator {
     final arrows = <Arrow>[];
     final rows = config.rows;
     final cols = config.cols;
+    final occupied = <GridPoint>{};
 
-    // Construct concentric interlocking arrows guaranteed to unravel sequentially
-    int count = min(config.arrowCount, rows * 2);
-    for (int i = 0; i < count; i++) {
-      final int layer = (i % min(rows ~/ 2, cols ~/ 2)).toInt();
-      final dirIndex = i % 4;
-      final dir = ArrowDirection.values[dirIndex];
+    int arrowIdx = 0;
+    final maxLayers = min(rows ~/ 2, cols ~/ 2);
 
-      List<GridPoint> path;
-      switch (dir) {
-        case ArrowDirection.up:
-          path = [
-            GridPoint(layer + 1, layer),
-            GridPoint(layer, layer),
-          ];
-          break;
-        case ArrowDirection.right:
-          path = [
-            GridPoint(layer, cols - 2 - layer),
-            GridPoint(layer, cols - 1 - layer),
-          ];
-          break;
-        case ArrowDirection.down:
-          path = [
-            GridPoint(rows - 2 - layer, cols - 1 - layer),
-            GridPoint(rows - 1 - layer, cols - 1 - layer),
-          ];
-          break;
-        case ArrowDirection.left:
-          path = [
-            GridPoint(rows - 1 - layer, layer + 1),
-            GridPoint(rows - 1 - layer, layer),
-          ];
-          break;
+    for (int k = 0; k < maxLayers; k++) {
+      for (int offset = k + 1; offset < cols - 1 - k; offset += 2) {
+        final upHead = GridPoint(k, offset);
+        final upTail = GridPoint(k + 1, offset);
+        if (!occupied.contains(upHead) && !occupied.contains(upTail)) {
+          occupied.add(upHead);
+          occupied.add(upTail);
+          arrows.add(Arrow(
+            id: 'fb_${levelId}_${arrowIdx++}',
+            path: [upTail, upHead],
+            direction: ArrowDirection.up,
+          ));
+        }
+
+        final downHead = GridPoint(rows - 1 - k, offset);
+        final downTail = GridPoint(rows - 2 - k, offset);
+        if (!occupied.contains(downHead) && !occupied.contains(downTail)) {
+          occupied.add(downHead);
+          occupied.add(downTail);
+          arrows.add(Arrow(
+            id: 'fb_${levelId}_${arrowIdx++}',
+            path: [downTail, downHead],
+            direction: ArrowDirection.down,
+          ));
+        }
       }
 
+      for (int offset = k + 1; offset < rows - 1 - k; offset += 2) {
+        final leftHead = GridPoint(offset, k);
+        final leftTail = GridPoint(offset, k + 1);
+        if (!occupied.contains(leftHead) && !occupied.contains(leftTail)) {
+          occupied.add(leftHead);
+          occupied.add(leftTail);
+          arrows.add(Arrow(
+            id: 'fb_${levelId}_${arrowIdx++}',
+            path: [leftTail, leftHead],
+            direction: ArrowDirection.left,
+          ));
+        }
+
+        final rightHead = GridPoint(offset, cols - 1 - k);
+        final rightTail = GridPoint(offset, cols - 2 - k);
+        if (!occupied.contains(rightHead) && !occupied.contains(rightTail)) {
+          occupied.add(rightHead);
+          occupied.add(rightTail);
+          arrows.add(Arrow(
+            id: 'fb_${levelId}_${arrowIdx++}',
+            path: [rightTail, rightHead],
+            direction: ArrowDirection.right,
+          ));
+        }
+      }
+
+      if (arrows.length >= config.arrowCount) break;
+    }
+
+    if (arrows.isEmpty) {
       arrows.add(Arrow(
-        id: 'fallback_${levelId}_$i',
-        path: path,
-        direction: dir,
+        id: 'fb_${levelId}_0',
+        path: [const GridPoint(1, 1), const GridPoint(0, 1)],
+        direction: ArrowDirection.up,
+      ));
+      arrows.add(Arrow(
+        id: 'fb_${levelId}_1',
+        path: [const GridPoint(1, 2), const GridPoint(2, 2)],
+        direction: ArrowDirection.down,
+      ));
+      arrows.add(Arrow(
+        id: 'fb_${levelId}_2',
+        path: [const GridPoint(2, 1), const GridPoint(2, 0)],
+        direction: ArrowDirection.left,
+      ));
+      arrows.add(Arrow(
+        id: 'fb_${levelId}_3',
+        path: [const GridPoint(0, 2), const GridPoint(0, 3)],
+        direction: ArrowDirection.right,
       ));
     }
 

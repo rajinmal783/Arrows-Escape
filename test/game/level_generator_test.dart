@@ -37,6 +37,39 @@ void main() {
       expect(solverResult.isSolvable, isTrue);
     });
 
+    test('Generates 100% solvable Hard level', () {
+      final level = LevelGenerator.generateLevel(250);
+      expect(level.difficulty, equals('Hard'));
+      final solverResult = PuzzleSolver.solve(
+        arrows: level.arrows,
+        rows: level.rows,
+        cols: level.columns,
+      );
+      expect(solverResult.isSolvable, isTrue);
+    });
+
+    test('Generates 100% solvable SuperHard level', () {
+      final level = LevelGenerator.generateLevel(350);
+      expect(level.difficulty, equals('Super Hard'));
+      final solverResult = PuzzleSolver.solve(
+        arrows: level.arrows,
+        rows: level.rows,
+        cols: level.columns,
+      );
+      expect(solverResult.isSolvable, isTrue);
+    });
+
+    test('Generates 100% solvable Master level (Level 500)', () {
+      final level = LevelGenerator.generateLevel(500);
+      expect(level.difficulty, equals('Master'));
+      final solverResult = PuzzleSolver.solve(
+        arrows: level.arrows,
+        rows: level.rows,
+        cols: level.columns,
+      );
+      expect(solverResult.isSolvable, isTrue);
+    });
+
     test('Deterministic generation produces identical arrows for identical level IDs', () {
       final levelA = LevelGenerator.generateLevel(42);
       final levelB = LevelGenerator.generateLevel(42);

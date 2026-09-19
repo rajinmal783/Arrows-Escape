@@ -18,7 +18,9 @@ class SolverResult {
 }
 
 class PuzzleSolver {
-  /// Solves the puzzle using state search with cycle detection and memoization.
+  /// Solves the puzzle using monotonic greedy clearance with cycle detection.
+  /// Because removing an arrow only frees space and never introduces obstructions,
+  /// clearing any available arrow is monotonically safe and optimal.
   static SolverResult solve({
     required List<Arrow> arrows,
     required int rows,
@@ -29,9 +31,9 @@ class PuzzleSolver {
       return const SolverResult(isSolvable: true);
     }
 
-    final initialRemaining = List<Arrow>.from(arrows);
+    final remaining = List<Arrow>.from(arrows);
     final initialAvailable = MoveValidator.getAvailableArrows(
-      activeArrows: initialRemaining,
+      activeArrows: remaining,
       rows: rows,
       cols: cols,
     );
@@ -40,73 +42,38 @@ class PuzzleSolver {
       return const SolverResult(isSolvable: false);
     }
 
-    // BFS Search for solution path
-    final queue = <_SearchNode>[
-      _SearchNode(
-        remainingArrows: initialRemaining,
-        clearedOrder: [],
-        depth: 0,
-      ),
-    ];
+    final solutionOrder = <String>[];
+    int totalAvailable = 0;
+    int steps = 0;
 
-    final visitedStates = <String>{};
-    visitedStates.add(_hashState(initialRemaining));
-
-    int totalBranching = 0;
-    int decisions = 0;
-    int iterations = 0;
-
-    while (queue.isNotEmpty && iterations < maxIterations) {
-      iterations++;
-      final current = queue.removeAt(0);
-
-      if (current.remainingArrows.isEmpty) {
-        return SolverResult(
-          isSolvable: true,
-          solutionOrder: current.clearedOrder,
-          initialAvailableCount: initialAvailable.length,
-          averageBranchingFactor: decisions > 0 ? totalBranching / decisions : 1.0,
-          dependencyDepth: current.depth,
-        );
-      }
-
+    while (remaining.isNotEmpty && steps < maxIterations) {
       final available = MoveValidator.getAvailableArrows(
-        activeArrows: current.remainingArrows,
+        activeArrows: remaining,
         rows: rows,
         cols: cols,
       );
 
       if (available.isEmpty) {
-        // Dead end on this branch
-        continue;
+        // Mutual blocking cycle detected: puzzle is genuinely unsolvable
+        return const SolverResult(isSolvable: false);
       }
 
-      totalBranching += available.length;
-      decisions++;
+      totalAvailable += available.length;
+      steps++;
 
-      for (final nextArrow in available) {
-        final nextRemaining = current.remainingArrows
-            .where((a) => a.id != nextArrow.id)
-            .toList();
-        final stateHash = _hashState(nextRemaining);
-
-        if (!visitedStates.contains(stateHash)) {
-          visitedStates.add(stateHash);
-          queue.add(_SearchNode(
-            remainingArrows: nextRemaining,
-            clearedOrder: [...current.clearedOrder, nextArrow.id],
-            depth: current.depth + 1,
-          ));
-        }
-      }
+      // Greedily remove an unblocked arrow
+      final nextArrow = available.first;
+      remaining.removeWhere((a) => a.id == nextArrow.id);
+      solutionOrder.add(nextArrow.id);
     }
 
-    return const SolverResult(isSolvable: false);
-  }
-
-  static String _hashState(List<Arrow> arrows) {
-    final ids = arrows.map((a) => a.id).toList()..sort();
-    return ids.join(',');
+    return SolverResult(
+      isSolvable: remaining.isEmpty,
+      solutionOrder: solutionOrder,
+      initialAvailableCount: initialAvailable.length,
+      averageBranchingFactor: steps > 0 ? totalAvailable / steps : 1.0,
+      dependencyDepth: steps,
+    );
   }
 }
 
